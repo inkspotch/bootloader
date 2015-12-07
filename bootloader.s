@@ -29,7 +29,7 @@ print:
   stosw 
   jmp print
   
-  .done
+  .done:
     ret
 
 message db "Hello video memory buffer!", 0
