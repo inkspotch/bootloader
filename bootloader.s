@@ -1,30 +1,40 @@
 [BITS 16]
 [ORG 0x7C00]
 
-jmp 0:main
+jmp 0:start
 
-main: 
-  cli
-  mov ax, 0x0
-  mov ds, ax
-  mov es, ax
+start:
+  mov ax, 0
   mov ss, ax
-  mov sp, ax
 
-  mov si, message
-  call print_message
+  mov ax, VIDEO_BUFFER
+  mov es, ax
+  mov di, 0
 
-print_message:
+  mov ax, 0
+  mov ds, ax
+  mov si, message 
+
+  call print
+  jmp halt
+
+halt: jmp $
+
+print:
   lodsb
   or al, al
   jz .done
-  mov ah, 0x0E
-  int 0x10
-  jmp print_message
-  .done ret
+  
+  mov ah, 0x2a
+  stosw 
+  jmp print
+  
+  .done
+    ret
 
-message db 'Hello from memory!', 13, 10, 0
+message db "Hello video memory buffer!", 0
+VIDEO_BUFFER equ 0xb800
 
-; bootable flag at bytes 511-55 and 512-AA
 times 510-($-$$) db 0
-dw 0xAA55
+db 0x55
+db 0xAA
