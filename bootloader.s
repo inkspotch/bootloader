@@ -3,37 +3,20 @@
 
 jmp 0:start
 
+%include "print.inc"
+
 start:
   mov ax, 0
   mov ss, ax
 
-  mov ax, VIDEO_BUFFER
-  mov es, ax
-  mov di, 0
+  call clear_screen
+  print message
 
-  mov ax, 0
-  mov ds, ax
-  mov si, message 
-
-  call print
   jmp halt
 
 halt: jmp $
 
-print:
-  lodsb
-  or al, al
-  jz .done
-  
-  mov ah, 0x2a
-  stosw 
-  jmp print
-  
-  .done:
-    ret
-
-message db "Hello video memory buffer!", 0
-VIDEO_BUFFER equ 0xb800
+message db "Booting...", 0
 
 times 510-($-$$) db 0
 db 0x55
