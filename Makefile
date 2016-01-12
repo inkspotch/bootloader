@@ -1,10 +1,21 @@
 ASM=nasm
 
 boot.img: boot.bin
-	dd if=boot.bin of=boot.img bs=512 count=2880 conv=notrunc
+	dd if=/dev/zero of=$@ bs=1024 count=1440 
+	DISK=`hdiutil attach -nomount $@`; \
+	newfs_msdos -F 12 -u 18 -e 244 -f 1440 $$DISK; \
+	hdiutil detach $$DISK
+	dd if=$< of=$@ bs=1 count=512 conv=notrunc
+
+file: boot.img
+	hdiutil attach $< | \
+	echo `awk -F '/Volumes/' '{print $$2}'`
 
 boot.bin: bootloader.s
 	$(ASM) $< -f bin -o boot.bin
+
+qemu: boot.img
+	qemu-system-i386 -m 256 -hda $<
 
 .PHONY: clean
 clean:
