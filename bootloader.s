@@ -6,11 +6,11 @@ nop
 
 ; FAT12 BIOS Parameter Block
 oem_label db "BSD  4.4"
-bytes_per_sector  dw 512
+bytes_per_sector dw 512
 sectors_per_cluster db 1
 reserved_sectors dw 1
 number_of_fats db 2
-root_directory_entries dw 244 
+root_directory_entries dw 224
 number_of_sectors dw 2880
 media_descriptor db 0xF0
 sectors_per_fat dw 9
@@ -36,7 +36,7 @@ start:
 
   jmp 0:main ; canonizing cs:offset to 0:7c00
 
-%include "print.inc"
+%include "bios_print.inc"
 
 main: 
   sti
@@ -47,9 +47,13 @@ main:
   mov ax, 0x7E0
   mov es, ax
   xor bx, bx
+  call load_fat
   call load_root_directory_table
-  
-  ;call find_file
+  mov WORD [start_data], bx
+  call calculate_data_sector
+  call find_file
+  call load_file
+  mov WORD [end_data], bx
 
   jmp halt
 
@@ -65,7 +69,7 @@ load_root_directory_table:
   mov WORD [logical_address], ax
   
   ; calculate number of sectors to read
-  mov ax, 32
+  mov ax, SIZEOF_DIR_ENTRY_BYTES
   mul WORD [root_directory_entries]
   div WORD [bytes_per_sector]
   
@@ -80,7 +84,7 @@ load_root_directory_table:
 ; es:bx - buffer to write to
 read_sectors:
   .main:
-    mov di, 5
+    mov di, 5 ; retry count
 
   .loop:
     push ax
@@ -132,37 +136,136 @@ lba_chs_convert:
   mov BYTE [cylinder], al
   ret
 
-file_name: db 'TEXT    '
+calculate_data_sector:
+  push cx
+  xor cx, cx
+
+  ; root_dir_entry_count * sizeof(dir_entry_bytes) / bytes_per_sector
+  mov ax, SIZEOF_DIR_ENTRY_BYTES
+  mul WORD [root_directory_entries]
+  div WORD [bytes_per_sector]
+
+  xchg ax, cx
+
+  ; FAT_count * sectors_per_fat
+  mov al, BYTE [number_of_fats]
+  mul WORD [sectors_per_fat]
+  
+  ; + reserved_sectors
+  add ax, WORD [reserved_sectors]
+  
+  add ax, cx
+  mov WORD [start_data_sector], ax
+
+  pop cx
+  ret
+
+; ax will hold the cluster of the first file
 find_file:
   mov cx, [root_directory_entries]
   xor di, di
 
   .next_entry:
     push cx
+    push di
     mov cx, 8 ; 11 character names 8 byte name + 3 byte extension
-    mov si, file_name
+    mov si, filename
     rep cmpsb
-    je .success_loading
+    pop di
     pop cx
-    add di, 32 ; next entry is 32 bytes later
-    loop .next_entry
     
+    je .success_loading
+    add di, SIZEOF_DIR_ENTRY_BYTES ; next entry is 32 bytes later
+    loop .next_entry
+
     print error
     ret
 
     .success_loading:
-      print file_name
+      add di, 0x1A
+      mov ax, WORD [es:di]
+      mov WORD [start_cluster], ax
+
+      print filename
   ret
+
+load_fat:
+  mov ax, 1 ; should be number of fats but simplying
+  mul WORD [sectors_per_fat]
+  mov cx, ax
+  mov ax, WORD [reserved_sectors]
+
+  call read_sectors
+
+  ret
+
+; ax is the cluster to convert
+; lba is in ax
+cluster_to_lba:
+  push cx
+  
+  sub ax, 2
+  xor cx, cx
+  mov cl, BYTE [sectors_per_cluster]
+  mul cx
+  add ax, WORD [start_data_sector]
+
+  pop cx
+  ret
+
+load_file:
+  push bx
+
+  .loop:
+    mov ax, WORD [start_cluster]
+    pop bx
+    call cluster_to_lba
+    xor cx, cx
+    mov cl, BYTE [sectors_per_cluster]
+    call read_sectors
+    push bx
+
+    ; find next cluser
+    mov ax, WORD [start_cluster]
+    mov cx, ax
+    mov dx, ax
+    shr dx, 1
+    add cx, dx
+    mov bx, cx ; FAT entry
+    mov dx, WORD [es:bx]
+    test ax, 1
+    jnz .odd_cluster
+
+    .even_cluster:
+      and dx, 0x0FFF
+      jmp .done
+      
+    .odd_cluster:
+      shr dx, 4
+
+    .done:
+      mov WORD [start_cluster], dx   
+      cmp dx, 0x0FF0
+      jb .loop
+
+  pop bx
+  ret
+
 
 logical_address: dw 0
 cylinder: db 0
 head: db 0
 sector: db 0
+start_data_sector: dw 0
+start_cluster: dw 0
+start_data: dw 0
+end_data: dw 0
 message: db "Booting...", 0
 error: db "error", 0
-filename: times 8 db 'A'
-          db 0
+filename: db "TEXT    ", 0
 
 times 510-($-$$) db 0
 db 0x55
 db 0xAA
+
+SIZEOF_DIR_ENTRY_BYTES EQU 32 ; bytes

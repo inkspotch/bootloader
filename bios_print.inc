@@ -1,6 +1,8 @@
 %macro print 1
+  push bx
   mov si, %1
   call _print
+  pop bx
 %endmacro
 
 _print:

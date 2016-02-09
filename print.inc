@@ -5,6 +5,7 @@
 
 _print:
   push es
+  push bx
   mov ax, VIDEO_BUFFER
   mov es, ax
 
@@ -14,18 +15,20 @@ _print:
   mul bx
 
   mov di, ax
+  
+  mov ah, 0x2a
 
   .print_character:
     lodsb
     or al, al
     jz .done
 
-    mov ah, 0x2a
     stosw
     jmp .print_character
 
   .done:
     inc WORD [row]
+    pop bx
     pop es
     ret
 
