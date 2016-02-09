@@ -49,11 +49,10 @@ main:
   xor bx, bx
   call load_fat
   call load_root_directory_table
-  mov WORD [start_data], bx
   call calculate_data_sector
   call find_file
   call load_file
-  mov WORD [end_data], bx
+  jmp 0x7E0:0x2e00
 
   jmp halt
 
@@ -258,11 +257,9 @@ head: db 0
 sector: db 0
 start_data_sector: dw 0
 start_cluster: dw 0
-start_data: dw 0
-end_data: dw 0
 message: db "Booting...", 0
 error: db "error", 0
-filename: db "TEXT    ", 0
+filename: db "STAGE2  ", 0
 
 times 510-($-$$) db 0
 db 0x55
