@@ -26,6 +26,8 @@ volume_label db "RPN OS     "
 filesystem_id db "FAT12   "
 ; END FAT12 Parameter Block
 
+%include "bios_print.inc"
+
 start:
   cli
   xor ax, ax
@@ -36,15 +38,13 @@ start:
 
   jmp 0:main ; canonizing cs:offset to 0:7c00
 
-%include "bios_print.inc"
-
 main: 
   sti
 
   call clear_screen
   print message
 
-  mov ax, 0x7E0
+  mov ax, 0x50
   mov es, ax
   xor bx, bx
   call load_fat
@@ -52,11 +52,10 @@ main:
   call calculate_data_sector
   call find_file
   call load_file
-  jmp 0x7E0:0x2e00
+  jmp 0x50:0x2e00
 
-  jmp halt
-
-halt: jmp $
+halt:
+  jmp $
 
 load_root_directory_table:
   ; calculate starting logical sector 
@@ -259,7 +258,7 @@ start_data_sector: dw 0
 start_cluster: dw 0
 message: db "Booting...", 0
 error: db "error", 0
-filename: db "STAGE2  ", 0
+filename: db "STAGE1_5", 0
 
 times 510-($-$$) db 0
 db 0x55
