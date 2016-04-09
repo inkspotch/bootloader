@@ -1,5 +1,7 @@
 ASM=nasm
 
+all: boot.img write_file
+
 boot.img: boot.bin
 	dd if=/dev/zero of=$@ bs=1024 count=1440 
 	DISK=`hdiutil attach -nomount $@`; \
@@ -7,12 +9,12 @@ boot.img: boot.bin
 	hdiutil detach $$DISK
 	dd if=$< of=$@ bs=1 count=512 conv=notrunc
 
-write_file: boot.img stage1_5.sys
+write_file: boot.img stage1_5.bin
 	hdiutil attach $<
-	cp stage1_5.sys "/Volumes/RPN OS/STAGE1_5.sys"
+	cp stage1_5.bin "/Volumes/RPN OS/STAGE1_5.sys"
 	hdiutil detach /dev/disk3
 
-stage1_5.sys: stage1_5.s
+stage1_5.bin: stage1_5.s
 	$(ASM) $< -f bin -o $@
 
 boot.bin: bootloader.s
