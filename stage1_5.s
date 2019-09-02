@@ -75,5 +75,5 @@ test_a20:
     pop es
     ret
 
-  message_enabled: db "enabled", 0
-  message_disabled: db "disabled", 0
+  message_enabled: db "A20 is enabled", 0
+  message_disabled: db "A20 cannot be enabled", 0

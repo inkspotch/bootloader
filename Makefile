@@ -12,7 +12,7 @@ boot.img: boot.bin
 write_file: boot.img stage1_5.bin
 	hdiutil attach $<
 	cp stage1_5.bin "/Volumes/RPN OS/STAGE1_5.sys"
-	hdiutil detach /dev/disk3
+	hdiutil detach disk2
 
 stage1_5.bin: stage1_5.s
 	$(ASM) $< -f bin -o $@
