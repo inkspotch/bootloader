@@ -109,7 +109,7 @@ read_sectors:
     dec di
     jnz .loop
     
-    print error
+    print disk_error
     jmp halt
 
   .success:
@@ -258,6 +258,7 @@ start_data_sector: dw 0
 start_cluster: dw 0
 message: db "Booting...", 0
 error: db "error", 0
+disk_error: db "disk error", 0
 filename: db "STAGE1_5", 0
 
 times 510-($-$$) db 0
