@@ -19,9 +19,9 @@ boot.img: $(BUILD_DIR)/bootloader.o
 	dd if=$< of=$@ bs=1 count=512 conv=notrunc
 
 bootdisk: boot.img $(BOOTLOADER_OBJS)
-	hdiutil attach $<
-	cp $(BUILD_DIR)/stage1_5.o "/Volumes/RPN OS/STAGE1_5.sys"
-	hdiutil detach disk2
+	disk=(`hdiutil attach $<`); \
+	cp $(BUILD_DIR)/stage1_5.o "/Volumes/RPN OS/STAGE1_5.sys"; \
+	hdiutil detach $${disk[0]}
 
 qemu: boot.img
 	qemu-system-i386 -m 256 -fda $<
