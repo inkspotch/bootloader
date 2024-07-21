@@ -1,7 +1,9 @@
-[BITS 16]
-[ORG 0x7C00]
+section .boot_sector
+global __start
 
-jmp start 
+[BITS 16]
+
+jmp __start 
 nop
 
 ; FAT12 BIOS Parameter Block
@@ -28,7 +30,7 @@ filesystem_id db "FAT12   "
 
 %include "bios_print.inc"
 
-start:
+__start:
   cli
   xor ax, ax
   mov ds, ax 
